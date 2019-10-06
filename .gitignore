@@ -1,0 +1,21 @@
+# gradle
+/bin/
+/build/
+.gradle
+
+# vscode
+/.settings/
+.classpath
+.project
+.jenkins
+.vscode/
+
+# idea
+*.iml
+/.idea/
+/out
+
+
+# maven
+target/
+
