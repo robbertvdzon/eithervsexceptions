@@ -3,6 +3,9 @@ package com.vdzon.monads.java;
 import java.util.Optional;
 import lombok.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,26 +30,23 @@ public class BriefControllerMetUncheckedExceptions {
       - de code van de losse functies zijn makkelijk te begrijpen
       - we kunnen nu wel streams en lambda's gebruiken zodat we de "sendBrief" functie veel duidelijker kunnen schrijven
   nadeel:
-      - Je weet niet welke excepties er gegooit kunnen worden. De kans is erg groot dat een foutsituatie niet goed wordt afgevangen.
+      - Je weet niet welke excepties er gegooit kunnen worden. De kans is erg groot dat een foutsituatie niet goed wordt afgevangen. (je kunt zo de KlantException verwijderen uit de catch, dan zou dat een 500 teruggeven ipv een 400)
       - De kans is groot dat er stacktraces in je logging komen voor niet-systeem fouten
  */
 
-  @RequestMapping("/brief2")
-  private ResponseEntity<String> briefController() {
+  @PostMapping("/brief2/{klantid}\"")
+  private ResponseEntity<String> briefController(@PathVariable int id, @RequestBody String body) {
     try {
-      String result = sendBrief(0, "Bief inhoud").getResult();
+      VerstuurResult verstuurResult = zoekKlant(id).flatMap(klant -> {
+        final boolean isZakelijkeKlant = isZakelijkeKlant(klant);
+        final Optional<Adres> mayBeAdres = isZakelijkeKlant ? findWerkAdres(klant) : Optional.of(findPriveAdres(klant));
+        return mayBeAdres.map(adres -> verstuurBrief(genereerBrief(adres, klant, body)));
+      }).orElseThrow(() -> new KlantException("Klant niet gevonden"));
+      String result = verstuurResult.getResult();
       return org.springframework.http.ResponseEntity.ok(result);
     } catch (KlantException | AdresException | BriefException | SendException ex) {
-      return org.springframework.http.ResponseEntity.status(500).body(ex.getMessage());
+      return org.springframework.http.ResponseEntity.status(400).body(ex.getMessage());
     }
-  }
-
-  private VerstuurResult sendBrief(int id, String body) throws AdresException, BriefException, SendException {
-    return zoekKlant(id).flatMap(klant -> {
-      final boolean isZakelijkeKlant = isZakelijkeKlant(klant);
-      final Optional<Adres> mayBeAdres = isZakelijkeKlant ? findWerkAdres(klant) : Optional.of(findPriveAdres(klant));
-      return mayBeAdres.map(adres -> verstuurBrief(genereerBrief(adres, klant, body)));
-    }).orElseThrow(() -> new KlantException("Klant niet gevonden"));
   }
 
   private Optional<Klant> zoekKlant(int id) {

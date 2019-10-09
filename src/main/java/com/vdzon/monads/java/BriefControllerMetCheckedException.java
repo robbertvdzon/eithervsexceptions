@@ -2,8 +2,11 @@ package com.vdzon.monads.java;
 
 import java.util.Optional;
 import lombok.Value;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,35 +34,26 @@ public class BriefControllerMetCheckedException {
       - De kans is groot dat er stacktraces in je logging komen voor niet-systeem fouten
  */
 
-  @RequestMapping("/brief1")
-  private ResponseEntity<String> briefController() {
+  @PostMapping("/brief1/{klantid}")
+  private ResponseEntity<String> briefController(@PathVariable int id, @RequestBody String body) {
     try {
-      String result = sendBrief(0, "Bief inhoud").getResult();
+      final Klant klant = zoekKlant(id).orElseThrow(() -> new KlantException("Klant niet gevonden"));
+      final boolean isZakelijkeKlant = isZakelijkeKlant(klant);
+      Adres adres = findAdres(klant, isZakelijkeKlant).orElseThrow(() -> new AdresException("Adres niet gevonden"));
+      Brief brief = genereerBrief(adres, klant, body);
+      VerstuurResult verstuurResult = verstuurBrief(brief);
+      String result = verstuurResult.getResult();
       return ResponseEntity.ok(result);
     } catch (KlantException | AdresException | BriefException | SendException ex) {
-      return ResponseEntity.status(500).body(ex.getMessage());
+      return ResponseEntity.status(400).body(ex.getMessage());
     }
+    // overige excepties worden automatisch omgezet naar een error 500
   }
 
-  private VerstuurResult sendBrief(int id, String body) throws KlantException, AdresException, BriefException, SendException {
-    // haal klant op, throw Exceptie als niet gevonden
-    final Optional<Klant> maybeKlant = zoekKlant(id);
-    if (maybeKlant.isEmpty()) { throw new KlantException("Klant niet gevonden"); }
-    final Klant klant = maybeKlant.get();
 
-    // zoek of deze klant een zakelijke klant is
-    final boolean isZakelijkeKlant = isZakelijkeKlant(klant);
-
-    // zoek adres (afhankelijk van zakelijk of niet), als geen adres gevonden, throw een Exceptie
-    final Optional<Adres> mayBeAdres = isZakelijkeKlant ? findWerkAdres(klant) : Optional.of(findPriveAdres(klant));
-    if (mayBeAdres.isEmpty()) { throw new AdresException("Adres niet gevonden"); }
-    Adres adres = mayBeAdres.get();
-
-    // Genereer een brief (deze functie gooit zelf een exceptie als er iets misgaat)
-    Brief brief = genereerBrief(adres, klant, body);
-
-    // verstuur de brief (deze functie gooit zelf een exceptie als er iets misgaat)
-    return verstuurBrief(brief);
+  @NotNull
+  private Optional<Adres> findAdres(Klant klant, boolean isZakelijkeKlant) {
+    return isZakelijkeKlant ? findWerkAdres(klant) : Optional.of(findPriveAdres(klant));
   }
 
   private Optional<Klant> zoekKlant(int id) {
@@ -113,7 +107,6 @@ public class BriefControllerMetCheckedException {
       super(msg);
     }
   }
-
 
 
   @Value

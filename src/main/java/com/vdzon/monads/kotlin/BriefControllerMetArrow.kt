@@ -4,7 +4,9 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.extensions.fx
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 
@@ -32,26 +34,21 @@ class Test3 {
       - Het is even wennen om het Either type te gebruiken
  */
 
-    @RequestMapping("/brief4")
-    private fun sendBriefController(): ResponseEntity<String> {
-        return sendBrief(0, "Dit is een brief")
-                .fold(
-                        { err -> ResponseEntity.status(500).body(err) },
-                        { result -> ResponseEntity.ok(result.result) }
-                )
-    }
-
-
-    private fun sendBrief(id: Int, briefBody: String): Either<String, VerstuurResult> {
+    @PostMapping("/brief3/{klantid}\"")
+    private fun briefController(@PathVariable id: Int, @RequestBody body: String): ResponseEntity<String> {
         return Either.fx<String, VerstuurResult> {
-            val (klant) = zoekKlant(id)
+            val klant = zoekKlant(id).bind()
             val zakelijkeKlant = isZakelijkeKlant(klant)
-            val (adres) = findAdres(zakelijkeKlant, klant)
-            val (brief) = genereerBrief(adres, klant, briefBody)
-            val (result) = verstuurBrief(brief)
+            val adres = findAdres(zakelijkeKlant, klant).bind()
+            val brief = genereerBrief(adres, klant, body).bind()
+            val result = verstuurBrief(brief).bind()
             result
-        }
+        }.fold(
+                { err -> ResponseEntity.status(400).body(err) },
+                { result -> ResponseEntity.ok(result.result) }
+        )
     }
+
 
     private fun findAdres(zakelijkeKlant: Boolean, klant: Klant) =
             if (zakelijkeKlant) findWerkAdres(klant).toEither { "Adres niet gevonden" }

@@ -4,7 +4,9 @@ import io.vavr.control.Either;
 import io.vavr.control.Option;
 import lombok.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,25 +34,22 @@ public class BriefControllerMetVavr {
       - De "sendbrief" is minder duidelijk dan de "unchecked exception" variant van de code
  */
 
-  @RequestMapping("/brief3")
-  private ResponseEntity<String> briefController() {
-    return sendBrief(0, "Bief inhoud")
-        .fold(
-            err -> ResponseEntity.status(500).body(err),
-            result -> ResponseEntity.ok(result.getResult())
-        );
-  }
-
-  private Either<String, VerstuurResult> sendBrief(int id, String body) {
+  @PostMapping("/brief3/{klantid}\"")
+  private ResponseEntity<String> briefController(@PathVariable int id, @RequestBody String body) {
     return zoekKlant(id).flatMap(klant -> {
       boolean isZakelijkeKlant = isZakelijkeKlant(klant);
       Option<Adres> mayBeAdres = isZakelijkeKlant ? findWerkAdres(klant) : Option.of(findPriveAdres(klant));
       return mayBeAdres.toEither("")
           .flatMap(adres -> genereerBrief(adres, klant, body)
-          .flatMap(brief -> verstuurBrief(brief))
+              .flatMap(brief -> verstuurBrief(brief))
           );
-    });
+    })
+        .fold(
+            err -> ResponseEntity.status(400).body(err),
+            result -> ResponseEntity.ok(result.getResult())
+        );
   }
+
 
   private Either<String, Klant> zoekKlant(int id) {
     if (id == 0) { return Either.left("Niet gevonden"); } else { return Either.right(new Klant(id, "Robbert")); }
