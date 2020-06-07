@@ -31,7 +31,7 @@ class BriefControllerMetVavrEitherBlock {
   Als er een userfout is (klant niet gevonden): dan een 400 teruggeven.
   Als het goed gaat geeft het systeem een 200 code terug met het resultaat van het versturen van de brief
 
-  Opgelost met de arrow library in kotlin waarbij alle fouten via een Either doorgegeven worden.
+  Opgelost met de vavr library in kotlin waarbij alle fouten via een Either doorgegeven worden.
   voordeel:
       - het is veel duidelijker welke fouten er in het systeek kunnen ontstaan
       - De "sendbrief" is zeer goed te lezen
@@ -40,7 +40,6 @@ class BriefControllerMetVavrEitherBlock {
       - wat is het verschil tussen en try/catch op alle fouten met runtime excepties? Dat je systeem fouten nog
         steeds met exceptie doe en dus een 500 krijg, maar user fouten kun je anders afhandelen.
         Is een system down dan een user-fout of een systeem fout? een systeem fout : 500 teruggegevn
-
 
   interne systeem fouten:
     hiervoor worden nog steeds excepties gebruikt. We catchen nergens een exceptie, dit wordt dus een 500 voor de gebruiker
