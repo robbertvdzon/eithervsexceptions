@@ -20,7 +20,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version_vavr>0.10.2</version_vavr>
-    <version_junit>4.12</version_junit>
+    <version_junit>4.13.1</version_junit>
     <arrow.version>0.10.0</arrow.version>
   </properties>
 
